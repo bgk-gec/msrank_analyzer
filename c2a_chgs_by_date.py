@@ -43,7 +43,10 @@ categories = [f[3:-7] for f in category_files]  # 'c1_'와 '.ndjson'을 제거�
 SIMILARITY_THRESHOLD = 0.75
 
 # 폰트 크기 설정
-font_size = 20
+font_size = 14
+
+# 모든 카테고리의 데이터를 저장할 리스트
+all_category_top5_data = []
 
 for category, file_name in zip(categories, category_files):
     vector_file = os.path.join(VECTOR_FILE_DIR, file_name)
@@ -147,3 +150,20 @@ for category, file_name in zip(categories, category_files):
     fig.write_image(CHART_FILE)
     
     print(f"Line chart for '{category}' saved to {CHART_FILE}")
+
+    # 클러스터별 상위 5개 키워드 저장
+    sorted_clusters = sorted(date_cluster_counts[sorted(date_cluster_counts.keys())[-1]].items(), key=lambda item: item[1], reverse=True)
+    category_top5_data = [f"## {category}"]
+    for rank, (keyword, count) in enumerate(sorted_clusters[:5], start=1):
+        category_top5_data.append(f"{rank}. {keyword} - {count} count")
+    category_top5_data.append("")  # 한 카테고리가 끝난 후 빈 줄 추가
+    
+    all_category_top5_data.extend(category_top5_data)
+    
+# 최종적으로 모든 카테고리의 데이터를 한 번에 텍스트 파일로 저장
+top5_file_path = os.path.join(RESULT_FILE_DIR, f'c2a_top5_{current_time}.txt')
+with open(top5_file_path, 'w', encoding='utf-8') as top5_file:
+    for line in all_category_top5_data:
+        top5_file.write(line + "\n")
+
+print(f"Top 5 data for each category saved to {top5_file_path}")
