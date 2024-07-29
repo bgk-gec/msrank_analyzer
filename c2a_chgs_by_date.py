@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 import json
 from datetime import datetime
+from scipy.spatial.distance import cosine  # 코사인 유사도 계산을 위해 추가
 import plotly.graph_objects as go
 
 # 디렉토리 설정
@@ -38,6 +39,12 @@ current_time = datetime.now().strftime("%Y%m%d")
 category_files = [f for f in os.listdir(VECTOR_FILE_DIR) if f.startswith('c1_') and f.endswith('.ndjson')]
 categories = [f[3:-7] for f in category_files]  # 'c1_'와 '.ndjson'을 제거하여 카테고리 이름 추출
 
+# 유사성 임계값 설정
+SIMILARITY_THRESHOLD = 0.75
+
+# 폰트 크기 설정
+font_size = 20
+
 for category, file_name in zip(categories, category_files):
     vector_file = os.path.join(VECTOR_FILE_DIR, file_name)
     with open(vector_file, 'r', encoding='utf-8') as vf:
@@ -56,11 +63,13 @@ for category, file_name in zip(categories, category_files):
     # 날짜별 클러스터 변화 추적
     date_cluster_counts = {}
     for entry, label in zip(data, assigned_clusters):
-        date = entry['date']
-        cluster_name = cluster_names[label]
-        if date not in date_cluster_counts:
-            date_cluster_counts[date] = {name: 0 for name in cluster_names}
-        date_cluster_counts[date][cluster_name] += 1
+        similarity = 1 - cosine(entry['vector'], cluster_centers[label])
+        if similarity >= SIMILARITY_THRESHOLD:
+            date = entry['date']
+            cluster_name = cluster_names[label]
+            if date not in date_cluster_counts:
+                date_cluster_counts[date] = {name: 0 for name in cluster_names}
+            date_cluster_counts[date][cluster_name] += 1
     
     # 결과 파일 저장 경로 설정
     RESULT_FILE = os.path.join(RESULT_FILE_DIR, f'c2a_{category}_{current_time}.ndjson')
@@ -87,19 +96,41 @@ for category, file_name in zip(categories, category_files):
     # 라인 끝에 키워드 추가 및 겹침 방지
     annotations = []
     last_values = df.iloc[-1]
-    y_positions = []
-    y_shift = 1.5  # 기본 이동 거리
+    y_positions = set()
+    x_positions = []
 
+    x_values = list(df.index)
+    x_adjustment = int(len(x_values) * 0.05)  # x 좌표 조정 비율 계산
+
+    # 1차: y=0이 아닌 경우 y 좌표 조정
     for i, column in enumerate(df.columns):
         y = last_values[column]
-        y_pos = y
-        # 겹치는지 확인하고 이동
-        while y_pos in y_positions:
-            y_pos += y_shift  # 이동 거리 증가
-            y_shift += 0.5  # 이동 거리 더 증가
-        y_positions.append(y_pos)
-        annotations.append(dict(x=df.index[-1], y=y_pos, text=column, showarrow=False))
-        print(f"Adjusted position for '{column}' to {y_pos} due to overlap")
+        x = df.index[-1]
+
+        if y != 0:
+            while (x, y) in y_positions:
+                y -= 1
+
+        y_positions.add((x, y))
+        if y == 0:
+            x_positions.append((x, y, column))  # y=0인 경우 x 좌표 조정을 위해 따로 저장
+        else:
+            annotations.append(dict(x=x, y=y, text=column, showarrow=False, font=dict(size=font_size)))
+            print(f"Adjusted position for '{column}' to (x: {x}, y: {y})")
+
+    # 2차: y=0인 경우 x 좌표 조정
+    for (x, y, column) in x_positions:
+        while (x, y) in y_positions:
+            x_index = x_values.index(x)
+            adjusted_x_index = x_index - x_adjustment
+            if adjusted_x_index >= 0:
+                x = x_values[adjusted_x_index]
+            else:
+                break  # x 좌표 조정이 더 이상 불가능한 경우
+
+        y_positions.add((x, y))
+        annotations.append(dict(x=x, y=y, text=column, showarrow=False, font=dict(size=font_size)))
+        print(f"Adjusted x position for '{column}' to (x: {x}, y: {y})")
     
     fig.update_layout(
         annotations=annotations,
@@ -107,7 +138,8 @@ for category, file_name in zip(categories, category_files):
         xaxis_title="Date",
         yaxis_title="Count",
         width=1920,
-        height=1080
+        height=1080,
+        font=dict(size=font_size)
     )
     
     # 차트 저장

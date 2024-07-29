@@ -2,17 +2,18 @@ import json
 from transformers import BertTokenizer, BertModel
 import torch
 import os
+print(torch.__path__)
 
 # 클러스터 기준 설정 (영어로 변환된 키워드들)
 clusters = {
-    "Style": ["Americana Casual", "Athleisure", "Avant-garde", "Black", "Bohemian", "Business", "Casual", "Chic", "Classic", "Contemporary", "Country", "Cyberpunk", "Dramatic", "Eco-friendly", "Elegant", "Ethnic", "Festival", "Flamboyant", "Formal", "Futuristic", "Gorpcore", "Grandma Chic", "Grunge", "Gothic", "Gothcore", "Hip-hop", "Loose", "Luxe", "Minimalism", "Military", "Monochrome", "Preppy", "Retro", "Rocker", "Prints", "Sustainable", "Street", "Tomboy", "Traditional", "Urban", "Vintage"],
-    "Type": ["t-shirt", "dress", "jeans", "coat", "jacket", "skirt", "blouse", "cardigan", "sweater", "shorts", "pants", "leggings", "suit", "blazer", "tank top", "camisole", "tunic", "mini", "parka", "coat", "vest", "overalls", "romper", "jumpsuit", "bodysuit", "cape", "poncho", "kimono", "anorak"],
+    "Style": ["Americana Casual", "Athleisure", "Business", "Casual", "Chic", "Classic", "Contemporary", "Country", "Formal", "Gorpcore", "Grandma Chic", "Loose", "Minimalism", "Military",  "Preppy", "Retro",  "Street", "Tomboy", "Traditional", "Urban", "Vintage"],
+    "Type": ["t-shirt", "dress", "jeans", "coat", "jacket", "skirt", "blouse", "cardigan", "sweater", "shorts", "pants", "leggings", "suit", "blazer", "camisole", "tunic", "parka", "vest", "anorak"],
     "Season": ["summer", "winter", "spring", "autumn", "rainy", "hot", "cold", "windy", "humid", "snowy", "stormy", "fog", "mild weather", "transitional season", "hiking"],
     "Items": ["bag", "shoes", "hat", "accessory", "watch", "jewelry", "belt", "scarf", "gloves", "sunglasses", "wallet", "brooch", "hair accessory", "tie", "cufflinks"],
-    "Color": ["black", "white", "red", "blue", "green", "pink", "yellow", "purple", "orange", "brown", "gray", "beige", "maroon", "navy", "teal", "turquoise", "coral", "olive", "peach", "lavender"],
+    "Color": ["black", "white", "red", "blue", "green", "pink", "yellow", "purple", "orange", "brown", "gray", "beige", "maroon", "navy", "teal", "Monochrome", "turquoise", "coral", "olive", "peach", "lavender"],
     "Material": ["cotton", "linen", "denim", "leather", "wool", "silk", "polyester", "rayon", "nylon", "velvet", "satin", "chiffon", "lace", "cashmere", "spandex", "tweed", "hemp", "modal", "suede", "tulle"],
-    "Trends": ["trend", "SNS", "YouTube", "celebrity", "viral", "street style", "runway", "fashion week", "eco-friendly", "sustainable fashion", "upcycling", "gender-neutral", "athleisure", "minimalism", "maximalism", "micro-trends", "airport"],
-    "Issues": ["environmental protection", "sustainability", "ethical consumption", "social responsibility", "diversity", "fair", "transparency", "animal welfare", "body", "positivity"],
+    "Trends": ["trend", "Prints", "SNS", "YouTube", "celebrity", "viral", "runway", "fashion week", "eco-friendly", "sustainable", "upcycling", "gender-neutral", "athleisure", "minimalism", "maximalism", "micro", "airport"],
+    "Issues": ["environmental", "protection", "sustainability", "ethical", "social responsibility", "diversity", "fair", "transparency", "animal welfare", "body", "positivity"],
     "Events": ["wedding", "party", "travel", "vacation", "Christmas", "Halloween", "New Year", "Valentine's Day", "birthday", "graduation", "anniversary", "holiday", "Buddha", ]
 }
 

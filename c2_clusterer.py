@@ -3,10 +3,10 @@ import ndjson
 import numpy as np
 from sklearn.cluster import KMeans
 import json
-import plotly.graph_objects as go
 from datetime import datetime
+from scipy.spatial.distance import cosine  # 코사인 유사도 계산을 위해 추가
 
-# Plotly가 설치되지 않은 경우 설치      **c1의 결과에 대한 트리맵, 모든 데이터에 대함.**
+# Plotly가 설치되지 않은 경우 설치
 try:
     import plotly.graph_objects as go
 except ImportError:
@@ -51,6 +51,9 @@ current_time = datetime.now().strftime("%Y%m%d")
 category_files = [f for f in os.listdir(VECTOR_FILE_DIR) if f.startswith('c1_') and f.endswith('.ndjson')]
 categories = [f[3:-7] for f in category_files]  # 'c1_'와 '.ndjson'을 제거하여 카테고리 이름 추출
 
+# 유사성 임계값 설정
+SIMILARITY_THRESHOLD = 0.75
+
 for category, file_name in zip(categories, category_files):
     vector_file = os.path.join(VECTOR_FILE_DIR, file_name)
     cluster_vectors = load_cluster_vectors(vector_file)
@@ -67,10 +70,14 @@ for category, file_name in zip(categories, category_files):
     
     # 클러스터별 키워드 수집
     cluster_counts = {name: 0 for name in cluster_names}
-    for label in assigned_clusters:
-        cluster_counts[cluster_names[label]] += 1
+    valid_clusters = []
+    for i, label in enumerate(assigned_clusters):
+        similarity = 1 - cosine(vectors[i], cluster_centers[label])
+        if similarity >= SIMILARITY_THRESHOLD:
+            cluster_counts[cluster_names[label]] += 1
+            valid_clusters.append(data[i])
     
-    clustered_data = [{"cluster": name, "count": count} for name, count in cluster_counts.items()]
+    clustered_data = [{"cluster": name, "count": count} for name, count in cluster_counts.items() if count > 0]
     
     # 결과 파일 경로 설정 및 저장
     result_file_name = f'c2_{category}_{current_time}.ndjson'
@@ -82,8 +89,8 @@ for category, file_name in zip(categories, category_files):
     
     # 트리맵 데이터 생성
     sizes = list(cluster_counts.values())
-    labels = [f"{name}" for name in cluster_counts.keys()]
-    values = [count for count in cluster_counts.values()]
+    labels = [f"{name}" for name in cluster_counts.keys() if cluster_counts[name] > 0]
+    values = [count for count in cluster_counts.values() if count > 0]
     
     # 트리맵 시각화 및 저장
     fig = go.Figure(go.Treemap(
@@ -99,7 +106,7 @@ for category, file_name in zip(categories, category_files):
         title=f'{category.capitalize()} Cluster Distribution Treemap',
         width=1920,
         height=1080,
-        font=dict(size=30)  # 폰트 크기 조정
+        font=dict(size=30)
     )
 
     chart_file_name = f'c2_{category}_chart_{current_time}.png'
